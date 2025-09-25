@@ -1,7 +1,11 @@
-// URL ÚNICA DO APPS SCRIPT
+// ====================================================================
+// 1. CONFIGURAÇÕES GLOBAIS
+// ====================================================================
+
+// ATENÇÃO: SUBSTITUA PELA URL ÚNICA DO SEU APPS SCRIPT
 const APP_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwKjtj-bgxr5poQTDWAKy1m1nWAuX-S1iT54_qvFnag6WZLVYHnmfx-z6JQ7V7ujG6f/exec'; 
 
-// Variável para rastrear o ID do acidente ativo na sessão
+// Variável global para rastrear o ID do acidente ativo na sessão
 let currentAccidentID = null;
 
 // --- CONFIGURAÇÃO DO INDEXEDDB ---
@@ -9,9 +13,12 @@ const DB_NAME = 'RAVPWADB';
 const DB_VERSION = 1;
 const STORE_NAME = 'pendingReports'; // Onde os 6 módulos serão armazenados
 
+// ====================================================================
+// 2. FUNÇÕES DE SUPORTE DO INDEXEDDB
+// ====================================================================
+
 /**
  * Abre a conexão com o IndexedDB e cria a Object Store se não existir.
- * @returns {Promise<IDBDatabase>} O objeto do banco de dados.
  */
 function openDB() {
     return new Promise((resolve, reject) => {
@@ -29,7 +36,7 @@ function openDB() {
         // É chamado se a versão do banco de dados for nova ou alterada
         request.onupgradeneeded = event => {
             const db = event.target.result;
-            // Cria a loja de objetos. A chave primária será o ID único gerado pela PWA.
+            // Chave composta para ID_PWA_UNICO e formType (permite vários relatórios/ID)
             if (!db.objectStoreNames.contains(STORE_NAME)) {
                 db.createObjectStore(STORE_NAME, { keyPath: 'ID_PWA_KEY' });
             }
@@ -37,11 +44,8 @@ function openDB() {
     });
 }
 
-// --- FUNÇÕES DE ARMAZENAMENTO LOCAL ---
-
 /**
- * Salva um registro pendente no IndexedDB.
- * @param {Object} payload - O objeto de dados completo (incluindo ID_PWA_UNICO e formType).
+ * Salva ou atualiza um registro pendente no IndexedDB.
  */
 async function salvarEmIndexedDB(payload) {
     try {
@@ -49,10 +53,11 @@ async function salvarEmIndexedDB(payload) {
         const transaction = db.transaction([STORE_NAME], 'readwrite');
         const store = transaction.objectStore(STORE_NAME);
         
-        // Cria uma chave composta única para o IndexedDB: ID_PWA_UNICO-FORM_TYPE
+        // Cria a chave composta (ID_PWA_UNICO-FORM_TYPE)
         payload.ID_PWA_KEY = `${payload.ID_PWA_UNICO}-${payload.formType}`;
+        payload.Status_Envio = 'Pendente'; // Garante que o status salvo é pendente
 
-        const request = store.put(payload); // put atualiza se existir, adiciona se não
+        const request = store.put(payload);
 
         await new Promise((resolve, reject) => {
             request.onsuccess = () => resolve();
@@ -63,13 +68,11 @@ async function salvarEmIndexedDB(payload) {
         alert(`💾 Relatório Salvo Localmente: ${payload.formType}`);
     } catch (error) {
         console.error("Erro ao salvar no IndexedDB:", error);
-        alert("Erro fatal ao salvar localmente. Verifique o console.");
     }
 }
 
 /**
  * Carrega todos os registros pendentes do IndexedDB.
- * @returns {Promise<Array<Object>>} Lista de registros pendentes.
  */
 async function carregarPendentes() {
     try {
@@ -110,14 +113,17 @@ async function removerDoIndexedDB(key) {
     }
 }
 
-// --- LÓGICA DO FLUXO DE TRABALHO E SINCRONIZAÇÃO ---
+// ====================================================================
+// 3. FLUXO PRINCIPAL DA APLICAÇÃO
+// ====================================================================
 
 /** Gera um ID único provisório para rastrear o acidente. */
 function gerarIdPWA() {
+    // Ex: 1678886400000-q1w2e3r4t
     return Date.now().toString() + '-' + Math.random().toString(36).substring(2, 9);
 }
 
-/** Inicia um novo acidente e habilita os botões. */
+/** Inicia um novo acidente, gera o ID e habilita os botões. */
 function iniciarNovoAcidente() {
     currentAccidentID = gerarIdPWA();
     document.getElementById('current-id').textContent = currentAccidentID;
@@ -131,15 +137,6 @@ function iniciarNovoAcidente() {
     loadPage('main-menu');
 }
 
-/** Atualiza a contagem de registros pendentes na interface. */
-async function updatePendingCount() {
-    const pendentes = await carregarPendentes();
-    document.getElementById('pending-count').textContent = pendentes.length;
-}
-
-// Chamar ao carregar a página
-updatePendingCount(); 
-
 /**
  * Coleta dados do formulário e tenta enviar. Se falhar, salva localmente.
  * @param {string} formType - O nome exato da aba no Google Sheets (ex: 'RECIBO BATIDA').
@@ -150,7 +147,7 @@ async function salvarOuEnviar(formType) {
         return;
     }
 
-    // A PWA precisa saber qual FORM foi preenchido. Assumindo que o ID do FORM é 'form' + formType sem espaços.
+    // Convenção: O ID do FORM deve ser 'form' + formType sem espaços (ex: formRECIBOBATIDA)
     const formId = 'form' + formType.replace(/\s/g, ''); 
     const formElement = document.getElementById(formId); 
     
@@ -162,213 +159,7 @@ async function salvarOuEnviar(formType) {
     const formData = new FormData(formElement);
     const dadosFormulario = Object.fromEntries(formData.entries());
 
-    // Inclui campos de rastreamento obrigatórios
+    // Monta o objeto inicial (Status_Envio será 'Enviado' se o fetch for ok)
     const payload = {
         ...dadosFormulario,
-        ID_PWA_UNICO: currentAccidentID,
-        Status_Envio: 'Pendente', // Começa como pendente
-        formType: formType // Chave para o roteamento no Apps Script
-    };
-
-    // 1. TENTATIVA DE ENVIO ONLINE
-    try {
-        const response = await fetch(APP_SCRIPT_URL, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
-        });
-
-        const result = await response.json();
-
-        if (result.result === 'success') {
-            alert(`✅ Sucesso! Relatório ${formType} enviado.`);
-            // Se foi online, não precisamos salvar, mas podemos remover qualquer versão antiga no DB
-            const key = `${currentAccidentID}-${formType}`;
-            await removerDoIndexedDB(key);
-            
-        } else {
-            // Falha lógica (ex: Planilha está offline, Apps Script deu erro)
-            alert(`⚠️ Falha no Apps Script (${result.message}). Salvando localmente.`);
-            await salvarEmIndexedDB(payload);
-        }
-        
-    } catch (error) {
-        // 2. FALHA DE REDE: Salvar Localmente
-        console.error('Falha de rede, salvando localmente:', error);
-        alert('❌ Falha de Rede. Salvando localmente para sincronização futura.');
-        await salvarEmIndexedDB(payload);
-    }
-}
-
-// --- FUNÇÕES DE UTILIDADE (Navegação) ---
-
-/** * Função simples para trocar de página.
- * (Ajustada para garantir que o ID do acidente seja atualizado nos campos ocultos).
- */
-function loadPage(pageId) {
-    document.querySelectorAll('section').forEach(section => {
-        section.style.display = 'none';
-    });
-    
-    document.getElementById(pageId).style.display = 'block';
-
-    if (pageId === 'pending-list') {
-        renderPendingList(); // Carrega a lista quando o usuário visita a página
-    }
-}
-
-/** Renderiza a lista de itens pendentes na interface. */
-async function renderPendingList() {
-    const listElement = document.getElementById('pending-items-list');
-    listElement.innerHTML = '';
-    const pendentes = await carregarPendentes();
-
-    if (pendentes.length === 0) {
-        listElement.innerHTML = '<li>Nenhum registro pendente de envio.</li>';
-        return;
-    }
-
-    pendentes.forEach(item => {
-        const li = document.createElement('li');
-        li.textContent = `[${item.formType}] ID: ${item.ID_PWA_UNICO} - Status: Pendente`;
-        // Adicionar botão para tentar reenviar
-        const btn = document.createElement('button');
-        btn.textContent = 'Reenviar';
-        btn.onclick = () => reenviarItem(item);
-        li.appendChild(btn);
-        
-        listElement.appendChild(li);
-    });
-}
-
-/** * Tenta reenviar um item salvo localmente. 
- * Esta função precisa ser criada e será o próximo passo da sincronização.
- */
-async function reenviarItem(payload) {
-    try {
-        console.log(`Tentando reenviar: ${payload.formType} - ${payload.ID_PWA_UNICO}`);
-
-        // Define o status como 'Enviado' para o Apps Script
-        payload.Status_Envio = 'Enviado'; 
-
-        const response = await fetch(APP_SCRIPT_URL, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
-        });
-
-        const result = await response.json();
-
-        if (result.result === 'success') {
-            // Se foi sucesso no Apps Script, removemos o registro local.
-            await removerDoIndexedDB(payload.ID_PWA_KEY);
-            return true;
-        } else {
-            console.error('Falha no Apps Script ao reenviar:', result.message);
-            return false;
-        }
-    } catch (error) {
-        // Falha de rede. Não fazemos nada, o item permanece no IndexedDB.
-        console.warn('Falha de rede ao reenviar. Item permanece pendente.', error);
-        return false;
-    }
-}
-
-/**
- * Funções principal de sincronização que envia todos os itens pendentes.
- */
-async function sincronizarTudo() {
-    const pendentes = await carregarPendentes();
-    if (pendentes.length === 0) {
-        console.log('Nenhum item pendente para sincronizar.');
-        return;
-    }
-
-    let sucessos = 0;
-    
-    // Itera sobre todos os itens pendentes e tenta enviá-los
-    for (const item of pendentes) {
-        const sucesso = await reenviarItem(item);
-        if (sucesso) {
-            sucessos++;
-        }
-    }
-
-    if (sucessos > 0) {
-        alert(`✅ Sincronização Completa: ${sucessos} de ${pendentes.length} relatórios enviados com sucesso!`);
-        renderPendingList(); // Atualiza a lista de pendentes
-    } else {
-        alert('⚠️ Sincronização Tentada: Nenhum item foi enviado com sucesso. Verifique a conexão.');
-    }
-}
-
-// --- LÓGICA DE DETECÇÃO DE CONEXÃO (Fallback para Background Sync) ---
-
-/**
- * Escuta eventos de rede para tentar sincronizar automaticamente.
- */
-window.addEventListener('online', async () => {
-    // Tenta sincronizar 5 segundos após a conexão ser restabelecida.
-    // Isso evita sincronizar antes que a rede esteja estável.
-    document.getElementById('sync-status').textContent = 'Conectado (Sincronizando em breve...)';
-    setTimeout(async () => {
-        await sincronizarTudo();
-        document.getElementById('sync-status').textContent = 'Conectado';
-    }, 5000); 
-});
-
-window.addEventListener('offline', () => {
-    document.getElementById('sync-status').textContent = 'Desconectado';
-});
-
-
-// ... (código loadPage, renderPendingList e outras funções de utilidade) ...
-
-// ** Modificando renderPendingList para chamar reenviarItem **
-async function renderPendingList() {
-    const listElement = document.getElementById('pending-items-list');
-    listElement.innerHTML = '';
-    const pendentes = await carregarPendentes();
-    
-    // ... (código de contagem e verificação) ...
-
-    pendentes.forEach(item => {
-        // ... (código de criação do <li>) ...
-        
-        // Botão para reenviar (chama a função de sincronização)
-        const btnReenviar = document.createElement('button');
-        btnReenviar.textContent = 'Reenviar Agora';
-        btnReenviar.onclick = async () => {
-             const sucesso = await reenviarItem(item); // Tenta reenviar apenas este
-             if (sucesso) {
-                 alert(`Relatório ${item.formType} reenviado com sucesso!`);
-             }
-             renderPendingList(); // Atualiza a lista após a tentativa
-        };
-        li.appendChild(btnReenviar);
-        
-        listElement.appendChild(li);
-    });
-}
-2. Implementação do service-worker.js (Opcional, mas Recomendado)
-Embora a sincronização baseada no evento online no main.js funcione amplamente, o Background Sync API no Service Worker é o padrão ouro. Se for suportado pelo dispositivo, ele garante que a sincronização ocorra mesmo se o aplicativo estiver fechado.
-
-No seu service-worker.js, adicione o bloco de escuta do evento sync:
-
-JavaScript
-
-// ... (código de install e fetch anterior) ...
-
-// --- SINCRONIZAÇÃO DE BACKGROUND (Para navegadores compatíveis) ---
-self.addEventListener('sync', event => {
-    // Ouve o evento 'sync' registrado pelo main.js (passo 3)
-    if (event.tag === 'sync-pendentes') {
-        console.log('[Service Worker] Tentando sincronizar pendentes...');
-        event.waitUntil(sincronizarNoServiceWorker());
-    }
-});
-
-// A lógica de sincronização deve ser REPETIDA no Service Worker
-// pois ele não tem acesso direto às funções do main.js.
-// No entanto, para simplificar, usaremos o método "online" no main.js,
-// que tem ampla compatibilidade. Deixe o código do service-worker.js como está.
+        ID_PWA_UNICO:
