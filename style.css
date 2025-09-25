@@ -1,0 +1,82 @@
+body {
+    font-family: Arial, sans-serif;
+    margin: 0;
+    padding: 0;
+    background-color: #f4f4f4;
+    color: #333;
+}
+
+header {
+    background-color: #0056b3; /* Cor primária da PWA (do manifest) */
+    color: white;
+    padding: 15px;
+    text-align: center;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+main {
+    padding: 20px;
+}
+
+/* Esconde todas as páginas por padrão, o JS irá mostrar a página ativa */
+.form-page, .data-page {
+    display: none;
+    max-width: 600px;
+    margin: 0 auto;
+    padding: 20px;
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.05);
+}
+
+/* Estilo dos botões principais */
+.primary-button, .secondary-button, .module-button, .submit-button, .back-button {
+    display: block;
+    width: 100%;
+    padding: 15px;
+    margin-bottom: 10px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 1em;
+    font-weight: bold;
+    text-align: center;
+    transition: background-color 0.2s;
+}
+
+.primary-button {
+    background-color: #28a745; /* Verde para 'Iniciar Novo' */
+    color: white;
+}
+
+.module-button {
+    background-color: #007bff; /* Azul para módulos */
+    color: white;
+}
+
+.module-button:disabled {
+    background-color: #ccc;
+    cursor: not-allowed;
+}
+
+.submit-button {
+    background-color: #ffc107; /* Amarelo para 'Salvar/Enviar' */
+    color: #333;
+    margin-top: 20px;
+}
+
+/* Estilo dos campos de formulário */
+form label {
+    display: block;
+    margin-top: 10px;
+    margin-bottom: 5px;
+    font-weight: bold;
+}
+
+form input[type="text"], form input[type="number"], form textarea {
+    width: calc(100% - 20px);
+    padding: 10px;
+    margin-bottom: 10px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+}
