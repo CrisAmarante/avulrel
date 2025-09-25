@@ -3,44 +3,88 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PWA - Registro de Acidentes</title>
+    <title>RAV PWA - Registro de Acidentes</title>
     <link rel="manifest" href="./manifest.json">
     <link rel="stylesheet" href="./style.css"> 
 </head>
 <body>
     <header>
-        <h1>Relatórios de Acidente (PWA)</h1>
-        <p>ID do Acidente Atual: <strong id="current-id">Aguardando Início</strong></p>
+        <h1>RAV PWA: Registro de Acidentes</h1>
+        <p>Status: <span id="sync-status">Conectado / Desconectado</span> | Pendentes: <span id="pending-count">0</span></p>
+        <p>ID do Acidente Atual: <strong id="current-id">Nenhum em Andamento</strong></p>
     </header>
 
     <main id="app-container">
-        <section id="main-menu">
-            <button onclick="iniciarNovoAcidente()">1. NOVO ACIDENTE (Gerar ID)</button>
+        
+        <section id="main-menu" class="active-page">
+            <button class="primary-button" onclick="iniciarNovoAcidente()">1. INICIAR NOVO ACIDENTE (Gerar ID)</button>
+            <button class="secondary-button" onclick="loadPage('pending-list')">2. VER REGISTROS PENDENTES</button>
+            
             <hr>
+            
             <h2>Módulos de Preenchimento:</h2>
-            <button id="btn-recibo" disabled>Recibo de Batida</button>
-            <button id="btn-chefia" disabled>Relatório à Chefia</button>
-            </section>
-
-        <section id="form-recibo" class="form-page" style="display:none;">
-            <h2>Formulário: Recibo de Quitação</h2>
-            <form id="formRecibo">
-                <input type="text" name="VALOR" placeholder="Valor do Acordo (R$)" required>
-                <button type="button" onclick="salvarOuEnviar('RECIBO BATIDA')">Salvar e Enviar</button>
-            </form>
+            <div id="module-buttons">
+                <button class="module-button" id="btn-recibo" onclick="loadPage('form-recibo')" disabled>Recibo de Batida</button>
+                <button class="module-button" id="btn-chefia" onclick="loadPage('form-chefia')" disabled>Relatório à Chefia</button>
+                <button class="module-button" id="btn-onibus" onclick="loadPage('form-onibus')" disabled>Dados do Ônibus</button>
+                <button class="module-button" id="btn-acidente" onclick="loadPage('form-acidente')" disabled>Dados do Acidente</button>
+                <button class="module-button" id="btn-terceiro" onclick="loadPage('form-terceiro')" disabled>Dados do Terceiro</button>
+                <button class="module-button" id="btn-testemunha" onclick="loadPage('form-testemunha')" disabled>Dados de Testemunhas</button>
+            </div>
         </section>
-    </main>
+
+        <section id="form-recibo" class="form-page">
+            <h2>Módulo: Recibo de Quitação</h2>
+            <form id="formRecibo" onsubmit="event.preventDefault(); salvarOuEnviar('RECIBO BATIDA')">
+                <label for="VALOR">Valor do Acordo (R$)</label>
+                <input type="number" id="VALOR" name="VALOR" required>
+
+                <label for="PLACA_TERC_REC">Placa do Veículo Terceiro</label>
+                <input type="text" id="PLACA_TERC_REC" name="PLACA_TERC_REC" required>
+                
+                <label for="NOME_TERC_REC">Nome do Condutor Terceiro</label>
+                <input type="text" id="NOME_TERC_REC" name="NOME_TERC_REC">
+                
+                <input type="hidden" name="ID_PWA_UNICO" id="id-recibo-hidden">
+                <input type="hidden" name="formType" value="RECIBO BATIDA">
+
+                <button type="submit" class="submit-button">Salvar e Enviar (Ou Salvar Localmente)</button>
+            </form>
+            <button class="back-button" onclick="loadPage('main-menu')">← Voltar ao Menu</button>
+        </section>
+
+        <section id="pending-list" class="data-page">
+            <h2>Registros Pendentes de Envio</h2>
+            <ul id="pending-items-list">
+                <li>Nenhum registro pendente.</li>
+            </ul>
+            <button class="back-button" onclick="loadPage('main-menu')">← Voltar ao Menu</button>
+        </section>
+
+        </main>
     
     <script src="./main.js"></script>
     <script>
-        // Registra o Service Worker para habilitar o modo offline
+        // ... CÓDIGO DE REGISTRO DO SERVICE WORKER (como no exemplo anterior) ...
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
-                navigator.serviceWorker.register('/PWA-Relatorios-Acidente/service-worker.js', { scope: '/PWA-Relatorios-Acidente/' })
+                // Ajuste o caminho do scope se necessário, dependendo de onde o GitHub Pages hospeda
+                navigator.serviceWorker.register('./service-worker.js')
                 .then(registration => console.log('SW registrado: ', registration.scope))
                 .catch(err => console.log('Falha no registro SW: ', err));
             });
         }
+        
+        // Função simples para trocar de página (implementação completa no main.js)
+        function loadPage(pageId) {
+            document.querySelectorAll('section').forEach(section => {
+                section.style.display = 'none';
+            });
+            document.getElementById(pageId).style.display = 'block';
+        }
+
+        // Começa na página principal
+        loadPage('main-menu'); 
     </script>
 </body>
 </html>
