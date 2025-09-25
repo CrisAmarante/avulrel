@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PWA - Registro de Acidentes</title>
+    <link rel="manifest" href="./manifest.json">
+    <link rel="stylesheet" href="./style.css"> 
+</head>
+<body>
+    <header>
+        <h1>Relatórios de Acidente (PWA)</h1>
+        <p>ID do Acidente Atual: <strong id="current-id">Aguardando Início</strong></p>
+    </header>
+
+    <main id="app-container">
+        <section id="main-menu">
+            <button onclick="iniciarNovoAcidente()">1. NOVO ACIDENTE (Gerar ID)</button>
+            <hr>
+            <h2>Módulos de Preenchimento:</h2>
+            <button id="btn-recibo" disabled>Recibo de Batida</button>
+            <button id="btn-chefia" disabled>Relatório à Chefia</button>
+            </section>
+
+        <section id="form-recibo" class="form-page" style="display:none;">
+            <h2>Formulário: Recibo de Quitação</h2>
+            <form id="formRecibo">
+                <input type="text" name="VALOR" placeholder="Valor do Acordo (R$)" required>
+                <button type="button" onclick="salvarOuEnviar('RECIBO BATIDA')">Salvar e Enviar</button>
+            </form>
+        </section>
+    </main>
+    
+    <script src="./main.js"></script>
+    <script>
+        // Registra o Service Worker para habilitar o modo offline
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/PWA-Relatorios-Acidente/service-worker.js', { scope: '/PWA-Relatorios-Acidente/' })
+                .then(registration => console.log('SW registrado: ', registration.scope))
+                .catch(err => console.log('Falha no registro SW: ', err));
+            });
+        }
+    </script>
+</body>
+</html>
