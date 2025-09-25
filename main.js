@@ -3,7 +3,7 @@
 // ====================================================================
 
 // ATENÇÃO: SUBSTITUA PELA URL ÚNICA DO SEU APPS SCRIPT
-const APP_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxIkvZ8o7pYG2H8TR8asurNN0A2YUNAb4PA6Bo_YvXv4XewoFYFg9Et8paaTB9z-KAG/exec'; 
+const APP_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwY09U1g4o2U8343_9m_ahBaAs9k2QDO1ZTeTx16trmY5oCPRXKx1XwiGiw4EvG0Qc/exec'; 
 
 // Variável global para rastrear o ID do acidente ativo na sessão
 let currentAccidentID = null;
