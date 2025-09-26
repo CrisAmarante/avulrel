@@ -3,88 +3,124 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>RAV PWA - Registro de Acidentes</title>
-    <link rel="manifest" href="./manifest.json">
-    <link rel="stylesheet" href="./style.css"> 
+    <meta name="theme-color" content="#0056b3">
+    <link rel="manifest" href="manifest.json">
+    <link rel="stylesheet" href="style.css">
+    <title>RAV PWA: Registro de Acidentes</title>
 </head>
 <body>
     <header>
         <h1>RAV PWA: Registro de Acidentes</h1>
-        <p>Status: <span id="sync-status">Conectado / Desconectado</span> | Pendentes: <span id="pending-count">0</span></p>
-        <p>ID do Acidente Atual: <strong id="current-id">Nenhum em Andamento</strong></p>
+        <p id="connection-status">Status: Conectado / Desconectado | <span id="pending-count">Pendentes: 0</span></p>
+        <p>ID do Acidente Atual: <span id="current-id">Nenhum em Andamento</span></p>
     </header>
 
-    <main id="app-container">
-        
-        <section id="main-menu" class="active-page">
+    <main>
+        <!-- Menu Principal -->
+        <div id="main-menu" class="form-page">
             <button class="primary-button" onclick="iniciarNovoAcidente()">1. INICIAR NOVO ACIDENTE (Gerar ID)</button>
-            <button class="secondary-button" onclick="loadPage('pending-list')">2. VER REGISTROS PENDENTES</button>
-            
-            <hr>
-            
-            <h2>Módulos de Preenchimento:</h2>
+            <button class="primary-button" onclick="verPendentes()">2. VER REGISTROS PENDENTES</button>
+            <h3>Módulos de Preenchimento:</h3>
             <div id="module-buttons">
-                <button class="module-button" id="btn-recibo" onclick="loadPage('formRECIBOBATIDA')" disabled>Recibo de Batida</button>
-                <button class="module-button" id="btn-chefia" onclick="loadPage('formRELATORIOCHEFIA')" disabled>Relatório à Chefia</button>
-                <button class="module-button" id="btn-onibus" onclick="loadPage('formDADOSONIBUS')" disabled>Dados do Ônibus</button>
-                <button class="module-button" id="btn-acidente" onclick="loadPage('formDADOSACIDENTE')" disabled>Dados do Acidente</button>
-                <button class="module-button" id="btn-terceiro" onclick="loadPage('formDADOSTERCEIRO')" disabled>Dados do Terceiro</button>
-                <button class="module-button" id="btn-testemunha" onclick="loadPage('formDADOSTESTEMUNHA')" disabled>Dados de Testemunhas</button>
+                <button class="module-button" disabled onclick="showModule('RECIBO BATIDA')">Recibo de Batida</button>
+                <button class="module-button" disabled onclick="showModule('RELATORIO CHEFIA')">Relatório à Chefia</button>
+                <button class="module-button" disabled onclick="showModule('DADOS ONIBUS')">Dados do Ônibus</button>
+                <button class="module-button" disabled onclick="showModule('DADOS ACIDENTE')">Dados do Acidente</button>
+                <button class="module-button" disabled onclick="showModule('DADOS TERCEIRO')">Dados do Terceiro</button>
+                <button class="module-button" disabled onclick="showModule('DADOS TESTEMUNHA')">Dados de Testemunhas</button>
             </div>
-        </section>
+        </div>
 
-        <section id="formRECIBOBATIDA" class="form-page">
+        <!-- Recibo de Batida -->
+        <div id="recibo-batida-page" class="form-page">
             <h2>Módulo: Recibo de Quitação</h2>
-            <form id="formRECIBOBATIDA" onsubmit="event.preventDefault(); salvarOuEnviar('RECIBO BATIDA')">
-                <label for="VALOR">Valor do Acordo (R$)</label>
-                <input type="number" id="VALOR" name="VALOR" required>
-
-                <label for="PLACA_TERC_REC">Placa do Veículo Terceiro</label>
-                <input type="text" id="PLACA_TERC_REC" name="PLACA_TERC_REC" required>
-                
-                <label for="NOME_TERC_REC">Nome do Condutor Terceiro</label>
-                <input type="text" id="NOME_TERC_REC" name="NOME_TERC_REC">
-                
-                <input type="hidden" name="ID_PWA_UNICO" id="id-recibo-hidden">
-                <input type="hidden" name="formType" value="RECIBO BATIDA">
-
-                <button type="submit" class="submit-button">Salvar e Enviar (Ou Salvar Localmente)</button>
+            <form id="recibo-form">
+                <label>Valor do Acordo (R$)</label>
+                <input type="number" name="VALOR" step="0.01" required>
+                <label>Placa do Veículo Terceiro</label>
+                <input type="text" name="PLACA_TERC_REC" required>
+                <label>Nome do Condutor Terceiro</label>
+                <input type="text" name="NOME_TERC_REC" required>
+                <button type="button" class="submit-button" onclick="salvarOuEnviar('RECIBO BATIDA')">Salvar e Enviar (Ou Salvar Localmente)</button>
             </form>
             <button class="back-button" onclick="loadPage('main-menu')">← Voltar ao Menu</button>
-        </section>
+        </div>
 
-        <section id="pending-list" class="data-page">
-            <h2>Registros Pendentes de Envio</h2>
-            <ul id="pending-items-list">
-                <li>Nenhum registro pendente.</li>
-            </ul>
+        <!-- Relatório à Chefia -->
+        <div id="relatorio-chefia-page" class="form-page">
+            <h2>Módulo: Relatório à Chefia</h2>
+            <form id="relatorio-chefia-form">
+                <label>Carro Informativo</label>
+                <input type="text" name="CARRO_INF" required>
+                <label>Hora Informativo</label>
+                <input type="time" name="HORA_INF" required>
+                <label>Motorista Informativo</label>
+                <input type="text" name="MOT_INF" required>
+                <button type="button" class="submit-button" onclick="salvarOuEnviar('RELATORIO CHEFIA')">Salvar e Enviar</button>
+            </form>
             <button class="back-button" onclick="loadPage('main-menu')">← Voltar ao Menu</button>
-        </section>
+        </div>
 
-        </main>
-    
-    <script src="./main.js"></script>
-    <script>
-        // ... CÓDIGO DE REGISTRO DO SERVICE WORKER (como no exemplo anterior) ...
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                // Ajuste o caminho do scope se necessário, dependendo de onde o GitHub Pages hospeda
-                navigator.serviceWorker.register('./service-worker.js')
-                .then(registration => console.log('SW registrado: ', registration.scope))
-                .catch(err => console.log('Falha no registro SW: ', err));
-            });
-        }
-        
-        // Função simples para trocar de página (implementação completa no main.js)
-        function loadPage(pageId) {
-            document.querySelectorAll('section').forEach(section => {
-                section.style.display = 'none';
-            });
-            document.getElementById(pageId).style.display = 'block';
-        }
+        <!-- Dados do Ônibus -->
+        <div id="dados-onibus-page" class="form-page">
+            <h2>Módulo: Dados do Ônibus</h2>
+            <form id="dados-onibus-form">
+                <label>Prefixo</label>
+                <input type="text" name="PREFIXO" required>
+                <label>Placa</label>
+                <input type="text" name="PLACA" required>
+                <button type="button" class="submit-button" onclick="salvarOuEnviar('DADOS ONIBUS')">Salvar e Enviar</button>
+            </form>
+            <button class="back-button" onclick="loadPage('main-menu')">← Voltar ao Menu</button>
+        </div>
 
-        // Começa na página principal
-        loadPage('main-menu'); 
-    </script>
+        <!-- Dados do Acidente -->
+        <div id="dados-acidente-page" class="form-page">
+            <h2>Módulo: Dados do Acidente</h2>
+            <form id="dados-acidente-form">
+                <label>Data</label>
+                <input type="date" name="DATA" required>
+                <label>Hora</label>
+                <input type="time" name="HORA" required>
+                <button type="button" class="submit-button" onclick="salvarOuEnviar('DADOS ACIDENTE')">Salvar e Enviar</button>
+            </form>
+            <button class="back-button" onclick="loadPage('main-menu')">← Voltar ao Menu</button>
+        </div>
+
+        <!-- Dados do Terceiro -->
+        <div id="dados-terceiro-page" class="form-page">
+            <h2>Módulo: Dados do Terceiro</h2>
+            <form id="dados-terceiro-form">
+                <label>Tipo de Veículo</label>
+                <input type="text" name="TIPO_VEICULO" required>
+                <label>Placa</label>
+                <input type="text" name="PLACA" required>
+                <button type="button" class="submit-button" onclick="salvarOuEnviar('DADOS TERCEIRO')">Salvar e Enviar</button>
+            </form>
+            <button class="back-button" onclick="loadPage('main-menu')">← Voltar ao Menu</button>
+        </div>
+
+        <!-- Dados de Testemunhas -->
+        <div id="dados-testemunha-page" class="form-page">
+            <h2>Módulo: Dados de Testemunhas</h2>
+            <form id="dados-testemunha-form">
+                <label>Testemunha 1</label>
+                <input type="text" name="TESTEMUNHA1" required>
+                <label>Telefone Testemunha 1</label>
+                <input type="tel" name="TELEFONE_TEST1" required>
+                <button type="button" class="submit-button" onclick="salvarOuEnviar('DADOS TESTEMUNHA')">Salvar e Enviar</button>
+            </form>
+            <button class="back-button" onclick="loadPage('main-menu')">← Voltar ao Menu</button>
+        </div>
+
+        <!-- Registros Pendentes -->
+        <div id="pendentes-page" class="data-page">
+            <h2>Registros Pendentes de Envio</h2>
+            <div id="pendentes-list"></div>
+            <button class="back-button" onclick="loadPage('main-menu')">← Voltar ao Menu</button>
+        </div>
+    </main>
+
+    <script src="main.js"></script>
 </body>
 </html>
