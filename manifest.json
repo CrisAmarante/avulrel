@@ -2,7 +2,7 @@
     "name": "Relatórios RAV - Offline",
     "short_name": "RAV PWA",
     "description": "Sistema de registro de relatórios de acidente com funcionalidade offline.",
-    "start_url": "/PWA-Relatorios-Acidente/index.html",
+    "start_url": "/index.html",
     "display": "standalone",
     "background_color": "#ffffff",
     "theme_color": "#0056b3",
